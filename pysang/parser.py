@@ -328,7 +328,11 @@ def _parse_tag_data(elem_code, elem_num, raw_data):
 
 def parse_abi(filename):
     '''Parse an ABI file from Sanger sequencing'''
-    with open(filename, 'rb') as abifile:
+    try:
+        with open(filename, 'rb') as abifile:
+            seq = list(AbiIterator(abifile))[0]
+    except TypeError:
+        abifile = filename
         seq = list(AbiIterator(abifile))[0]
     return seq
 
@@ -337,6 +341,6 @@ def parse_abi(filename):
 # Test script
 if __name__ == '__main__':
 
-    from os import sep as s
-    filename = 'pysang'+s+'data'+s+'FZ01_A12_096.ab1'
-    seq = parse_abi(filename)
+    from pkg_resources import resource_stream
+    input_file = resource_stream(__name__, 'data/FZ01_A12_096.ab1')
+    seq = parse_abi(input_file)

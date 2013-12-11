@@ -1,6 +1,6 @@
 import os
-from ez_setup import use_setuptools
-use_setuptools()
+#from ez_setup import use_setuptools
+#use_setuptools()
 from setuptools import setup, find_packages
 
 def read(fname):
@@ -15,5 +15,6 @@ setup(name="PySang",
       license='Public domain',
       packages=find_packages(exclude='tests'),
       package_data={'pysang': ['data/*.ab1']},
-      install_requires=['numpy', 'matplotlib', 'PySide', 'Bio'],
-      )
+      #install_requires=['numpy', 'matplotlib', 'biopython'],
+      entry_points = {'gui_scripts': ['pysang = pysang.gui:main']}
+     )

@@ -13,6 +13,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide import QtCore, QtGui
 
+from parser import parse_abi
 from plot import plot_chromatograph
 
 
@@ -25,7 +26,7 @@ def rgba_to_zeroone(rgba):
 # Classes
 class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
-    def __init__(self, seq, parent=None, width=18, height=6, dpi=100):
+    def __init__(self, seq=None, parent=None, width=18, height=6, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         fig.set_facecolor(rgba_to_zeroone(QtGui.QColor(QtGui.QPalette.Background).toTuple()))
 
@@ -72,7 +73,7 @@ class MyMplCanvas(FigureCanvas):
 
 
 class ApplicationWindow(QtGui.QMainWindow):
-    def __init__(self, seq):
+    def __init__(self, seq=None):
         QtGui.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("PySang")
@@ -99,7 +100,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         titlefont = QtGui.QFont()
         titlefont.setPointSize(14)
         title = QtGui.QLabel()
-        title.setText(seq.name)
+        if seq is not None:
+            title.setText(seq.name)
         title.setFont(titlefont)
         titlebox.addWidget(title, alignment=QtCore.Qt.AlignCenter)
         l.addWidget(self.title_widget)
@@ -114,7 +116,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         seqtextl = QtGui.QLabel()
         seqtextl.setText('Sequence: ')
         seqtext = QtGui.QLineEdit()
-        seqtext.setText(str(seq.seq))
+        if seq is not None:
+            seqtext.setText(str(seq.seq))
         seqtext.setReadOnly(True)
         seqbox.addWidget(seqtextl)
         seqbox.addWidget(seqtext)
@@ -129,10 +132,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         rangel2.setText(' to: ')
         self.range1 = ranget1 = QtGui.QLineEdit()
         ranget1.setValidator(QtGui.QIntValidator(0, 10000))
-        ranget1.insert('0')
+        if seq is not None:
+            ranget1.insert('0')
         self.range2 = ranget2 = QtGui.QLineEdit()
         ranget2.setValidator(QtGui.QIntValidator(0, 10000))
-        ranget2.insert(str(len(seq)))
+        if seq is not None:
+            ranget2.insert(str(len(seq)))
         self.goButton = rangegobutton = QtGui.QPushButton('Go')
         rangebox.addWidget(rangel1)
         rangebox.addWidget(ranget1)
@@ -193,14 +198,11 @@ AND FITNESS FOR A PARTICULAR PURPOSE.
 )
 
 
+def main():
 
-# Test script
-if __name__ == '__main__':
-
-    from parser import parse_abi
-    from os import sep as s
-    filename = 'pysang'+s+'data'+s+'FZ01_A12_096.ab1'
-    seq = parse_abi(filename)
+    from pkg_resources import resource_stream
+    input_file = resource_stream(__name__, 'data/FZ01_A12_096.ab1')
+    seq = parse_abi(input_file)
 
     app = QtGui.QApplication.instance()
     if app is None:
@@ -209,3 +211,10 @@ if __name__ == '__main__':
     win = ApplicationWindow(seq)
     win.show()
     sys.exit(app.exec_())
+
+
+
+# Test script
+if __name__ == '__main__':
+
+    main()

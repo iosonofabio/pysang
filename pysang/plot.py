@@ -15,6 +15,9 @@ colors = {'A': 'r', 'C': 'b', 'G': 'g', 'T': 'k'}
 def plot_chromatograph(seq, ax, xlim=None):
     '''Plot Sanger chromatograph'''
 
+    if seq is None:
+        return
+
     # Get raw signals and plot them
     chs = np.array([seq.annotations['channel '+str(i)] for i in xrange(1, 5)])
     ts = np.array(seq.annotations['peak positions'])
@@ -64,9 +67,9 @@ def plot_chromatograph(seq, ax, xlim=None):
 if __name__ == '__main__':
 
     from parser import parse_abi
-    from os import sep as s
-    filename = 'pysang'+s+'data'+s+'FZ01_A12_096.ab1'
-    seq = parse_abi(filename)
+    from pkg_resources import resource_stream
+    input_file = resource_stream(__name__, 'data/FZ01_A12_096.ab1')
+    seq = parse_abi(input_file)
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, 1, figsize=(15, 6))
