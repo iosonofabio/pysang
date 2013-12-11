@@ -39,7 +39,7 @@ class MyMplCanvas(FigureCanvas):
 
         # Plot the chromatograph
         self.compute_initial_figure()
-        fig.tight_layout(rect=(0.03, 0, 0.98, 0.95))
+        #fig.tight_layout(rect=(0.03, 0, 0.98, 0.95))
 
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
@@ -74,6 +74,8 @@ class MyMplCanvas(FigureCanvas):
 
 class ApplicationWindow(QtGui.QMainWindow):
     def __init__(self, seq=None):
+        self.seq = seq
+
         QtGui.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("PySang")
@@ -115,10 +117,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         seqbox = QtGui.QHBoxLayout(self.seq_widget)
         seqtextl = QtGui.QLabel()
         seqtextl.setText('Sequence: ')
-        seqtext = QtGui.QLineEdit()
-        if seq is not None:
-            seqtext.setText(str(seq.seq))
-        seqtext.setReadOnly(True)
+        self.seqtext = seqtext = QtGui.QLineEdit()
+        self.set_seqstring(seq)
         seqbox.addWidget(seqtextl)
         seqbox.addWidget(seqtext)
         l.addWidget(self.seq_widget)
@@ -132,12 +132,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         rangel2.setText(' to: ')
         self.range1 = ranget1 = QtGui.QLineEdit()
         ranget1.setValidator(QtGui.QIntValidator(0, 10000))
-        if seq is not None:
-            ranget1.insert('0')
         self.range2 = ranget2 = QtGui.QLineEdit()
         ranget2.setValidator(QtGui.QIntValidator(0, 10000))
-        if seq is not None:
-            ranget2.insert(str(len(seq)))
+        self.set_seqrange(seq)
         self.goButton = rangegobutton = QtGui.QPushButton('Go')
         rangebox.addWidget(rangel1)
         rangebox.addWidget(ranget1)
@@ -154,11 +151,29 @@ class ApplicationWindow(QtGui.QMainWindow):
         # Button Signal/Slots
         self.goButton.clicked.connect(self.update_plot)
 
+
+    def set_seqstring(self, seq):
+        '''Seq the sequence string'''
+        if seq:
+            self.seqtext.setText(str(seq.seq))
+        else:
+            self.seqtext.setText('')
+        self.seqtext.setReadOnly(True)
+
+
+    def set_seqrange(self, seq):
+        '''Update the seqranges'''
+        if seq is not None:
+            self.range1.insert('0')
+            self.range2.insert(str(len(seq)))
+
+
     def update_plot(self):
         '''Update plot according to ranges'''
         r1 = int(self.range1.text())
         r2 = int(self.range2.text())
         self.canvas.update_plot_range(r1, r2)
+        self.set_seqstring(self.seq[r1: r2])
 
 
     def fileQuit(self):
@@ -166,10 +181,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
 
     def fileOpen(self):
-        fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home')
+        fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
         if fname:
-            seq = parse_abi(fname)
+            self.seq = seq = parse_abi(fname)
             self.canvas.compute_new_figure(seq)
+            self.set_seqstring(seq)
+            self.set_seqrange(seq)
 
 
     def closeEvent(self, ce):
