@@ -173,14 +173,23 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def about(self):
         QtGui.QMessageBox.about(self, "About",
-"""embedding_in_qt4.py example
-Copyright 2005 Florent Rougon, 2006 Darren Dale
+"""PySang: a Sanger chromatograph viewer.
 
-This program is a simple example of a Qt4 application embedding matplotlib
-canvases.
+Fabio Zanini
 
-It may be used and modified with no restriction; raw copies as well as
-modified versions may be distributed without limitation."""
+License: PySang is donated to the public domain. You may therefore freely copy \
+it for any legal purpose you wish. Acknowledgement of authorship and citation \
+in publications is appreciated.
+
+Note: This program uses other Python modules that might have different license \
+agreement. Those copyrights are still valid beyond this agreement. Thanks to \
+the authors of those modules for their hard work.
+
+Disclaimer of warranty
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS \
+OR IMPLIED, INCLUDING WITHOUT LIMITATION IMPLIED WARRANTIES OF MERCHANTABILITY \
+AND FITNESS FOR A PARTICULAR PURPOSE. 
+"""
 )
 
 
@@ -189,7 +198,8 @@ modified versions may be distributed without limitation."""
 if __name__ == '__main__':
 
     from parser import parse_abi
-    filename = 'test_data/FZ01_A12_096.ab1'
+    from os import sep as s
+    filename = 'pysang'+s+'data'+s+'FZ01_A12_096.ab1'
     seq = parse_abi(filename)
 
     app = QtGui.QApplication.instance()

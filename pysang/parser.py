@@ -337,5 +337,6 @@ def parse_abi(filename):
 # Test script
 if __name__ == '__main__':
 
-    filename = 'test_data/FZ01_A12_096.ab1'
+    from os import sep as s
+    filename = 'pysang'+s+'data'+s+'FZ01_A12_096.ab1'
     seq = parse_abi(filename)
