@@ -12,8 +12,12 @@ colors = {'A': 'r', 'C': 'b', 'G': 'g', 'T': 'k'}
 
 
 # Functions
-def plot_chromatograph(seq, ax, xlim=None):
+def plot_chromatograph(seq, ax=None, xlim=None):
     '''Plot Sanger chromatograph'''
+
+    if ax is None:
+        import matplotlib.pyploy as plt
+        fig, ax = plt.subplots(1, 1, figsize=(16, 6))
 
     if seq is None:
         ax.set_xlim(-2, 102)
