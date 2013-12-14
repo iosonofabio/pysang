@@ -16,7 +16,8 @@ def plot_chromatograph(seq, ax=None, xlim=None):
     '''Plot Sanger chromatograph'''
 
     if ax is None:
-        import matplotlib.pyploy as plt
+        import matplotlib.pyplot as plt
+        plt.ion()
         fig, ax = plt.subplots(1, 1, figsize=(16, 6))
 
     if seq is None:

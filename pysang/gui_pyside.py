@@ -15,6 +15,8 @@ from PySide import QtCore, QtGui
 
 from parser import parse_abi
 from plot import plot_chromatograph
+from sequence_utils import reverse_complement
+
 
 
 # Functions
@@ -87,6 +89,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.file_menu.addAction('&Quit', self.fileQuit,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
+
+        self.options_menu = QtGui.QMenu('&Options', self)
+        self.options_menu.addAction('&Reverse complement', self.reverseComplement,
+                                    QtCore.Qt.CTRL + QtCore.Qt.Key_R)
+        self.menuBar().addMenu(self.options_menu)
 
         self.help_menu = QtGui.QMenu('&Help', self)
         self.menuBar().addSeparator()
@@ -193,6 +200,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.statusBar().showMessage("Data loaded.", 2000)
         else:
             self.statusBar().showMessage("File not found.", 2000)
+
+
+    def reverseComplement(self):
+        self.seq = seq = reverse_complement(self.seq)
+        self.canvas.compute_new_figure(seq)
+        self.set_seqstring(seq)
+        self.set_seqrange(seq)
+        self.statusBar().showMessage("Reverse complement.", 2000)
 
 
     def closeEvent(self, ce):

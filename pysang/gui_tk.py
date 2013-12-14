@@ -15,7 +15,7 @@ import tkFileDialog, tkMessageBox
 
 from parser import parse_abi
 from plot import plot_chromatograph
-
+from sequence_utils import reverse_complement
 
 
 
@@ -77,6 +77,12 @@ class ApplicationWindow(Tk):
         self.file_menu.add_command(label="Open", command=self.fileOpen, accelerator="Ctrl+O")
         self.file_menu.add_command(label="Quit", command=self.fileQuit, accelerator="Ctrl+Q")
 
+        self.options_menu = Menu(menu, tearoff=0)
+        menu.add_cascade(label='Options', menu=self.options_menu)
+        self.options_menu.add_command(label='Reverse complement',
+                                      command=self.reverseComplement,
+                                      accelerator='Ctrl+R')
+
         self.help_menu = Menu(menu, tearoff=0)
         menu.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="About", command=self.about)
@@ -84,6 +90,7 @@ class ApplicationWindow(Tk):
         # Bind menu hotkeys
         self.bind_all("<Control-o>", self.fileOpen)
         self.bind_all("<Control-q>", self.fileQuit)
+        self.bind_all("<Control-r>", self.reverseComplement)
 
         # Title row
         title = Label(master=self)
@@ -184,6 +191,14 @@ class ApplicationWindow(Tk):
             self.set_seqstring(seq)
             self.set_seqrange(seq)
             self.statusBar.config(text="Data loaded.")
+
+
+    def reverseComplement(self, event=None):
+            self.seq = seq = reverse_complement(self.seq)
+            self.canvas.compute_new_figure(seq)
+            self.set_seqstring(seq)
+            self.set_seqrange(seq)
+            self.statusBar.config(text="Reverse complement.")
 
 
     def closeEvent(self, ce):
