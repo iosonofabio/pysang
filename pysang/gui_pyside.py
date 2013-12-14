@@ -164,7 +164,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def set_seqrange(self, seq):
         '''Update the seqranges'''
-        #FIXME: delete previous text in any case
+        self.range1.clear()
+        self.range2.clear()
         if seq is not None:
             self.range1.insert('0')
             self.range2.insert(str(len(seq)))

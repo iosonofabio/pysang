@@ -72,14 +72,18 @@ class ApplicationWindow(Tk):
         # Menu stuff
         menu = Menu(self)
         self.config(menu=menu)
-        self.file_menu = Menu(menu)
+        self.file_menu = Menu(menu, tearoff=0)
         menu.add_cascade(label="File", menu=self.file_menu)
-        self.file_menu.add_command(label="Open", command=self.fileOpen)
-        self.file_menu.add_command(label="Quit", command=self.fileQuit)
+        self.file_menu.add_command(label="Open", command=self.fileOpen, accelerator="Ctrl+O")
+        self.file_menu.add_command(label="Quit", command=self.fileQuit, accelerator="Ctrl+Q")
 
-        self.help_menu = Menu(menu)
+        self.help_menu = Menu(menu, tearoff=0)
         menu.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="About", command=self.about)
+
+        # Bind menu hotkeys
+        self.bind_all("<Control-o>", self.fileOpen)
+        self.bind_all("<Control-q>", self.fileQuit)
 
         # Title row
         title = Label(master=self)
@@ -168,11 +172,11 @@ class ApplicationWindow(Tk):
         self.set_seqstring(self.seq[r1: r2])
 
 
-    def fileQuit(self):
+    def fileQuit(self, event=None):
         self.quit()
 
 
-    def fileOpen(self):
+    def fileOpen(self, event=None):
         fname = tkFileDialog.askopenfilename()
         if fname:
             self.seq = seq = parse_abi(fname)
