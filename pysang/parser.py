@@ -326,7 +326,28 @@ def _parse_tag_data(elem_code, elem_num, raw_data):
         return None
 
 
-def parse_abi(filename):
+def trim_and_rescale_trace(seq):
+    '''Trim traces to peak positions, shift to start from zero, and rescale'''
+
+    traces = [seq.annotations['channel '+str(i)] for i in xrange(1, 5)]
+    peaks = seq.annotations['peak positions']
+    n = len(peaks)
+    step = 1.0 * (peaks[-1] - peaks[0]) / n
+
+    traces = [[t for (i, t) in enumerate(trace) if peaks[0] <= i < peaks[-1]]
+              for trace in traces]
+    peaks = [(p - peaks[0]) / step for p in peaks]
+
+    x = [1.0 * i / step for i in xrange(len(traces[0]))]
+
+    seq.annotations['peak positions'] = peaks
+    for (i, trace) in enumerate(traces, 1):
+        seq.annotations['channel '+str(i)] = trace
+    seq.annotations['trace_x'] = x
+
+
+
+def parse_abi(filename, trim=True):
     '''Parse an ABI file from Sanger sequencing'''
     try:
         with open(filename, 'rb') as abifile:
@@ -334,6 +355,9 @@ def parse_abi(filename):
     except TypeError:
         abifile = filename
         seq = list(AbiIterator(abifile))[0]
+
+    if trim:
+        trim_and_rescale_trace(seq)
     return seq
 
 

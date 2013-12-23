@@ -1,4 +1,5 @@
-__all__ = ['parser',
+__all__ = ['info',
+           'parser',
            'plot',
            'gui',
            'gui_pyside',

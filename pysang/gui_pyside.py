@@ -8,7 +8,7 @@ content:    GUI interface for Sanger chromatographs, using PySide (QT).
 import sys
 import matplotlib
 matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4']='PySide'
+matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide import QtCore, QtGui
@@ -16,6 +16,7 @@ from PySide import QtCore, QtGui
 from parser import parse_abi
 from plot import plot_chromatograph
 from sequence_utils import reverse_complement
+from info import aboutMessage
 
 
 
@@ -26,25 +27,16 @@ def rgba_to_zeroone(rgba):
 
 
 # Classes
-class MyMplCanvas(FigureCanvas):
-    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
-    def __init__(self, seq=None, parent=None, width=18, height=6, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.set_facecolor(rgba_to_zeroone(QtGui.QColor(QtGui.QPalette.Background).toTuple()))
+class SingleChromCanvas(FigureCanvas):
+    """Canvas with one chromatograph."""
+    def __init__(self, parent=None, width=18, height=6, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)  # Parent is the main widget
 
-        self.axes = fig.add_subplot(111)
-        # We want the axes cleared every time plot() is called
-        self.axes.hold(False)
+        self.fig.set_facecolor(rgba_to_zeroone(QtGui.QColor(QtGui.QPalette.Background).toTuple()))
+        self.axes = self.fig.add_subplot(111)
 
-        # Store the sequence object
-        self.seq = seq
-
-        # Plot the chromatograph
-        self.compute_initial_figure()
-        #fig.tight_layout(rect=(0.03, 0, 0.98, 0.95))
-
-        FigureCanvas.__init__(self, fig)
-        self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,
                                    QtGui.QSizePolicy.Expanding,
@@ -52,30 +44,12 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-    def compute_initial_figure(self):
-        self.axes.hold(True)
-        plot_chromatograph(self.seq, self.axes)
-        self.axes.hold(False)
-
-
-    def update_plot_range(self, start, end):
-        self.axes.clear()
-        self.axes.hold(True)
-        plot_chromatograph(self.seq, self.axes, xlim=[start, end])
-        self.axes.hold(False)
-        self.draw()
-
-
-    def compute_new_figure(self, seq):
-        self.seq = seq
-        self.axes.clear()
-        self.compute_initial_figure()
-        self.draw()
-
-
 
 class ApplicationWindow(QtGui.QMainWindow):
+    '''Main window of PySang'''
+
     def __init__(self, seq=None):
+        # For the time being, work with a single chromatograph
         self.seq = seq
 
         QtGui.QMainWindow.__init__(self)
@@ -83,6 +57,33 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.setWindowTitle("PySang")
 
         # Menu stuff
+        self.initMenuBar()
+
+        # Main widget (everything but menu/status bar, and possible dock widgets)
+        self.main_widget = QtGui.QWidget(self)
+        self.main_widget.setFocus()
+        self.setCentralWidget(self.main_widget)
+        self.vboxl = QtGui.QVBoxLayout(self.main_widget)
+
+        # Title row
+        self.initTitleWidget()
+
+        # Main figure
+        self.canvas = SingleChromCanvas(self.main_widget, dpi=100)
+        self.vboxl.addWidget(self.canvas)
+        self.compute_initial_figure()
+
+        # Sequence row
+        self.initSequenceWidget()
+
+        # Range row
+        self.initRangeWidget()
+
+        # Button Signal/Slots
+        self.goButton.clicked.connect(self.update_plot)
+
+    
+    def initMenuBar(self):
         self.file_menu = QtGui.QMenu('&File', self)
         self.file_menu.addAction('&Open', self.fileOpen,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_O)
@@ -91,7 +92,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.menuBar().addMenu(self.file_menu)
 
         self.options_menu = QtGui.QMenu('&Options', self)
-        self.options_menu.addAction('&Reverse complement', self.reverseComplement,
+        self.options_menu.addAction('&Reverse complement', self.optionsReverseComplement,
                                     QtCore.Qt.CTRL + QtCore.Qt.Key_R)
         self.menuBar().addMenu(self.options_menu)
 
@@ -99,39 +100,33 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
 
-        self.help_menu.addAction('&About', self.about)
+        self.help_menu.addAction('&About', self.helpAbout)
 
-        self.main_widget = QtGui.QWidget(self)
-        l = QtGui.QVBoxLayout(self.main_widget)
 
-        # Title row
-        self.title_widget = QtGui.QWidget(self.main_widget)
-        titlebox = QtGui.QHBoxLayout(self.title_widget)
+    def initTitleWidget(self):
+        self.title = QtGui.QLabel()
+        if self.seq is not None:
+            self.title.setText(self.seq.name)
         titlefont = QtGui.QFont()
         titlefont.setPointSize(14)
-        title = QtGui.QLabel()
-        if seq is not None:
-            title.setText(seq.name)
-        title.setFont(titlefont)
-        titlebox.addWidget(title, alignment=QtCore.Qt.AlignCenter)
-        l.addWidget(self.title_widget)
+        self.title.setFont(titlefont)
+        self.title.setAlignment(QtCore.Qt.AlignCenter)
+        self.vboxl.addWidget(self.title)
 
-        # Main figure
-        self.canvas = sc = MyMplCanvas(seq, self.main_widget, dpi=100)
-        l.addWidget(sc)
 
-        # Sequence row
+    def initSequenceWidget(self):
         self.seq_widget = QtGui.QWidget(self.main_widget)
         seqbox = QtGui.QHBoxLayout(self.seq_widget)
         seqtextl = QtGui.QLabel()
         seqtextl.setText('Sequence: ')
         self.seqtext = seqtext = QtGui.QLineEdit()
-        self.set_seqstring(seq)
+        self.set_seqstring(self.seq)
         seqbox.addWidget(seqtextl)
         seqbox.addWidget(seqtext)
-        l.addWidget(self.seq_widget)
+        self.vboxl.addWidget(self.seq_widget)
 
-        # Range row
+
+    def initRangeWidget(self):
         self.range_widget = QtGui.QWidget(self.main_widget)
         rangebox = QtGui.QHBoxLayout(self.range_widget)
         rangel1 = QtGui.QLabel()
@@ -142,22 +137,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         ranget1.setValidator(QtGui.QIntValidator(0, 10000))
         self.range2 = ranget2 = QtGui.QLineEdit()
         ranget2.setValidator(QtGui.QIntValidator(0, 10000))
-        self.set_seqrange(seq)
+        self.set_seqrange(self.seq)
         self.goButton = rangegobutton = QtGui.QPushButton('Go')
         rangebox.addWidget(rangel1)
         rangebox.addWidget(ranget1)
         rangebox.addWidget(rangel2)
         rangebox.addWidget(ranget2)
         rangebox.addWidget(rangegobutton)
-        l.addWidget(self.range_widget)
-
-        self.main_widget.setFocus()
-        self.setCentralWidget(self.main_widget)
-
-        self.statusBar().showMessage("Sample data loaded.", 2000)
-
-        # Button Signal/Slots
-        self.goButton.clicked.connect(self.update_plot)
+        self.vboxl.addWidget(self.range_widget)
 
 
     def set_seqstring(self, seq):
@@ -182,10 +169,28 @@ class ApplicationWindow(QtGui.QMainWindow):
         '''Update plot according to ranges'''
         r1 = int(self.range1.text())
         r2 = int(self.range2.text())
-        self.canvas.update_plot_range(r1, r2)
+        self.update_plot_range(r1, r2)
         self.set_seqstring(self.seq[r1: r2])
 
 
+    def compute_initial_figure(self):
+        plot_chromatograph(self.seq, self.canvas.axes)
+        self.statusBar().showMessage("Sample data loaded.", 2000)
+
+
+    def update_plot_range(self, start, end):
+        self.canvas.axes.clear()
+        plot_chromatograph(self.seq, self.canvas.axes, xlim=[start, end])
+        self.canvas.draw()
+
+
+    def compute_new_figure(self, seq):
+        self.canvas.axes.clear()
+        self.compute_initial_figure()
+        self.canvas.draw()
+
+
+    # Menu Events
     def fileQuit(self):
         self.close()
 
@@ -194,7 +199,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
         if fname:
             self.seq = seq = parse_abi(fname)
-            self.canvas.compute_new_figure(seq)
+            self.compute_new_figure(seq)
             self.set_seqstring(seq)
             self.set_seqrange(seq)
             self.statusBar().showMessage("Data loaded.", 2000)
@@ -202,9 +207,9 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.statusBar().showMessage("File not found.", 2000)
 
 
-    def reverseComplement(self):
+    def optionsReverseComplement(self):
         self.seq = seq = reverse_complement(self.seq)
-        self.canvas.compute_new_figure(seq)
+        self.compute_new_figure(seq)
         self.set_seqstring(seq)
         self.set_seqrange(seq)
         self.statusBar().showMessage("Reverse complement.", 2000)
@@ -214,26 +219,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.fileQuit()
 
 
-    def about(self):
-        QtGui.QMessageBox.about(self, "About",
-"""PySang: a Sanger chromatograph viewer.
-
-Fabio Zanini
-
-License: PySang is donated to the public domain. You may therefore freely copy \
-it for any legal purpose you wish. Acknowledgement of authorship and citation \
-in publications is appreciated.
-
-Note: This program uses other Python modules that might have different license \
-agreement. Those copyrights are still valid beyond this agreement. Thanks to \
-the authors of those modules for their hard work.
-
-Disclaimer of warranty
-THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS \
-OR IMPLIED, INCLUDING WITHOUT LIMITATION IMPLIED WARRANTIES OF MERCHANTABILITY \
-AND FITNESS FOR A PARTICULAR PURPOSE. 
-"""
-)
+    def helpAbout(self):
+        QtGui.QMessageBox.about(self, "About", aboutMessage)
 
 
 def main():
