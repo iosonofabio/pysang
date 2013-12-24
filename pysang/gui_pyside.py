@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from PySide import QtCore, QtGui
 
 from parser import parse_abi
-from plot import plot_chromatograph
+from plot import plot_chromatograph, closest_peak, peak_position, highlight_base
 from sequence_utils import reverse_complement
 from info import aboutMessage
 
@@ -71,7 +71,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         # Main figure
         self.canvas = SingleChromCanvas(self.main_widget, dpi=100)
         self.vboxl.addWidget(self.canvas)
-        self.compute_initial_figure()
+        self.initFigure()
 
         # Sequence row
         self.initSequenceWidget()
@@ -80,9 +80,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.initRangeWidget()
 
         # Button Signal/Slots
-        self.goButton.clicked.connect(self.update_plot)
+        self.goButton.clicked.connect(self.updatePlotRange)
+        self.canvas.mpl_connect('button_press_event', self.toggleHighlight)
 
     
+    # Initialization functions
     def initMenuBar(self):
         self.file_menu = QtGui.QMenu('&File', self)
         self.file_menu.addAction('&Open', self.fileOpen,
@@ -114,13 +116,18 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.vboxl.addWidget(self.title)
 
 
+    def initFigure(self):
+        plot_chromatograph(self.seq, self.canvas.axes)
+        self.statusBar().showMessage("Sample data loaded.", 2000)
+
+
     def initSequenceWidget(self):
         self.seq_widget = QtGui.QWidget(self.main_widget)
         seqbox = QtGui.QHBoxLayout(self.seq_widget)
         seqtextl = QtGui.QLabel()
         seqtextl.setText('Sequence: ')
         self.seqtext = seqtext = QtGui.QLineEdit()
-        self.set_seqstring(self.seq)
+        self.setSeqString(self.seq)
         seqbox.addWidget(seqtextl)
         seqbox.addWidget(seqtext)
         self.vboxl.addWidget(self.seq_widget)
@@ -147,7 +154,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.vboxl.addWidget(self.range_widget)
 
 
-    def set_seqstring(self, seq):
+    def setSeqString(self, seq):
         '''Seq the sequence string'''
         if seq:
             self.seqtext.setText(str(seq.seq))
@@ -165,29 +172,25 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.range2.insert(str(len(seq)))
 
 
-    def update_plot(self):
-        '''Update plot according to ranges'''
-        r1 = int(self.range1.text())
-        r2 = int(self.range2.text())
-        self.update_plot_range(r1, r2)
-        self.set_seqstring(self.seq[r1: r2])
-
-
-    def compute_initial_figure(self):
-        plot_chromatograph(self.seq, self.canvas.axes)
-        self.statusBar().showMessage("Sample data loaded.", 2000)
-
-
-    def update_plot_range(self, start, end):
+    def updatePlotRange(self):
+        start = int(self.range1.text())
+        end = int(self.range2.text())
         self.canvas.axes.clear()
-        plot_chromatograph(self.seq, self.canvas.axes, xlim=[start, end])
+        plot_chromatograph(self.seq, self.canvas.axes, peaklim=[start, end])
+        if hasattr(self, 'hl_base'):
+            if not (start <= self.hl_base['index'] < end):
+                del self.hl_base
+            else:
+                self.hl_base = highlight_base(self.hl_base['peak'], self.seq, self.canvas.axes)
+        self.setSeqString(self.seq[start: end + 1])
         self.canvas.draw()
 
 
-    def compute_new_figure(self, seq):
+    def computeNewFigure(self, seq):
         self.canvas.axes.clear()
-        self.compute_initial_figure()
-        self.canvas.draw()
+        plot_chromatograph(self.seq, self.canvas.axes,
+                           xlim=(int(self.range1.text()), int(self.range2.text())))
+        self.statusBar().showMessage("New data loaded.", 2000)
 
 
     # Menu Events
@@ -199,9 +202,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
         if fname:
             self.seq = seq = parse_abi(fname)
-            self.compute_new_figure(seq)
-            self.set_seqstring(seq)
+            self.computeNewFigure(seq)
+            self.setSeqString(seq)
             self.set_seqrange(seq)
+            self.canvas.draw()
             self.statusBar().showMessage("Data loaded.", 2000)
         else:
             self.statusBar().showMessage("File not found.", 2000)
@@ -209,9 +213,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def optionsReverseComplement(self):
         self.seq = seq = reverse_complement(self.seq)
-        self.compute_new_figure(seq)
-        self.set_seqstring(seq)
-        self.set_seqrange(seq)
+        self.computeNewFigure(seq)
+        if hasattr(self, 'hl_base'):
+            pos_click = peak_position(len(seq) - 1 - self.hl_base['index'], self.seq)
+            self.hl_base = highlight_base(pos_click, self.seq, self.canvas.axes)
+        self.setSeqString(self.seq[int(self.range1.text()): int(self.range2.text())])
+        self.canvas.draw()
         self.statusBar().showMessage("Reverse complement.", 2000)
 
 
@@ -221,6 +228,25 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def helpAbout(self):
         QtGui.QMessageBox.about(self, "About", aboutMessage)
+
+
+    # Other events
+    def toggleHighlight(self, ev):
+        '''Toggle highlight of a base if it's clicked'''
+        if ev.inaxes != self.canvas.axes:
+            return
+
+        if hasattr(self, 'hl_base'):
+            self.hl_base['rec'].remove()
+            if self.hl_base['index'] == closest_peak(ev.xdata, self.seq)['index']:
+                del self.hl_base
+                return
+        try:
+            self.hl_base = highlight_base(ev.xdata, self.seq, self.canvas.axes)
+            self.canvas.draw()
+        except ValueError:
+            return
+
 
 
 def main():

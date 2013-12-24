@@ -12,7 +12,7 @@ colors = {'A': 'r', 'C': 'b', 'G': 'g', 'T': 'k'}
 
 
 # Functions
-def plot_chromatograph(seq, ax=None, xlim=None):
+def plot_chromatograph(seq, ax=None, xlim=None, peaklim=None):
     '''Plot Sanger chromatograph'''
 
     if ax is None:
@@ -32,7 +32,9 @@ def plot_chromatograph(seq, ax=None, xlim=None):
     x = seq.annotations['trace_x']
 
     # Limit to a region if necessary
-    if xlim is not None:
+    if (xlim is not None) or (peaklim is not None):
+        if peaklim is not None:
+            xlim = (peaks[peaklim[0]], peaks[peaklim[1]])
         ind = [(xi >= xlim[0]) and (xi <= xlim[1]) for xi in x]
         if not any(ind):
             return 
@@ -59,7 +61,50 @@ def plot_chromatograph(seq, ax=None, xlim=None):
                 xmax=peaks[-1] + max(2, 0.02 * (peaks[-1] - peaks[0])))
     ax.set_yticklabels([])
     ax.grid()
-    ax.legend(loc=1)
+    ax.legend(loc='upper left', bbox_to_anchor=(0.95, 1.0))
+
+
+def closest_peak(pos_click, seq):
+    peaks = seq.annotations['peak positions']
+    (i, peak) = min(enumerate(peaks), key=lambda x: abs(x[1] - pos_click))
+    return {'index': i, 'peak': peak}
+
+
+def peak_position(i, seq):
+    return seq.annotations['peak positions'][i]
+
+
+def highlight_base(pos_click, seq, ax):
+    '''Highlight the area around a peak with a rectangle'''
+
+    trace = seq.annotations['channel 1']
+    peaks = seq.annotations['peak positions']
+
+    peak_obj = closest_peak(pos_click, seq)
+    i = peak_obj['index']
+    peak = peak_obj['peak']
+
+    xmin, xmax = ax.get_xlim()
+    if not (xmin <= peak < xmax):
+        raise ValueError('peak not within plot bounds')
+
+    if i == 0:
+        xmin = -0.5
+    else:
+        xmin = 0.5 * (peaks[i - 1] + peak)
+
+    if i == len(peaks) - 1:
+        xmax = peak + 0.5
+    else:
+        xmax = 0.5 * (peak + peaks[i + 1])
+
+    ymin, ymax = ax.get_ylim()
+
+    from matplotlib.patches import Rectangle
+    rec = Rectangle((xmin, ymin), (xmax - xmin), (ymax - ymin),
+                    edgecolor='none', facecolor='blue', alpha=0.3)
+    ax.add_patch(rec)
+    return {'index': i, 'peak': peak, 'rec': rec}
 
 
 
@@ -74,7 +119,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, 1, figsize=(15, 6))
 
-    plot_chromatograph(seq, ax, xlim=[210, 240])
+    plot_chromatograph(seq, ax, xlim=[10, 40])
+    highlight_base(20.5, seq, ax)
 
     plt.ion()
     plt.show()

@@ -23,7 +23,10 @@ def reverse_complement(seqrecord):
         srev.annotations['channel '+str(i)] = seqrecord.annotations['channel '+str(i)][::-1]
 
     # Reverse peak positions
-    tmax = len(seqrecord.annotations['channel 1'])
+    if 'trace_x' in seqrecord.annotations:
+        tmax = seqrecord.annotations['trace_x'][-1]
+    else:
+        tmax = len(seqrecord.annotations['channel 1'])
     srev.annotations['peak positions'] = [tmax - p for p in seqrecord.annotations['peak positions'][::-1]]
 
     # Copy the rest
