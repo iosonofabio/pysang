@@ -34,7 +34,7 @@ def plot_chromatograph(seq, ax=None, xlim=None, peaklim=None):
     # Limit to a region if necessary
     if (xlim is not None) or (peaklim is not None):
         if peaklim is not None:
-            xlim = (peaks[peaklim[0]], peaks[peaklim[1]])
+            xlim = (peaks[peaklim[0]], peaks[peaklim[1] - 1])
         ind = [(xi >= xlim[0]) and (xi <= xlim[1]) for xi in x]
         if not any(ind):
             return 

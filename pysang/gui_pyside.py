@@ -21,8 +21,6 @@ from info import aboutMessage
 
 
 # Functions
-def rgba_to_zeroone(rgba):
-    return tuple(1.0 - 1.0 * c / 255.0 for c in rgba)
 
 
 
@@ -34,7 +32,7 @@ class SingleChromCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)  # Parent is the main widget
 
-        self.fig.set_facecolor(rgba_to_zeroone(QtGui.QColor(QtGui.QPalette.Background).toTuple()))
+        self.fig.set_facecolor(self.rgba_to_zeroone(QtGui.QColor(QtGui.QPalette.Background).toTuple()))
         self.axes = self.fig.add_subplot(111)
 
 
@@ -42,6 +40,11 @@ class SingleChromCanvas(FigureCanvas):
                                    QtGui.QSizePolicy.Expanding,
                                    QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+
+
+    @staticmethod
+    def rgba_to_zeroone(rgba):
+        return tuple(1.0 - 1.0 * c / 255.0 for c in rgba)
 
 
 
@@ -94,8 +97,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.menuBar().addMenu(self.fileMenu)
 
         self.viewMenu = QtGui.QMenu('&View', self)
+        self.viewMenu.addAction('&View complete sequence', self.viewViewCompleteSeq,
+                                QtCore.Qt.CTRL + QtCore.Qt.Key_H)
         self.viewMenu.addAction('&Reverse complement', self.viewReverseComplement,
-                                    QtCore.Qt.CTRL + QtCore.Qt.Key_R)
+                                QtCore.Qt.CTRL + QtCore.Qt.Key_R)
         self.menuBar().addMenu(self.viewMenu)
 
         self.helpMenu = QtGui.QMenu('&Help', self)
@@ -123,12 +128,12 @@ class ApplicationWindow(QtGui.QMainWindow):
     def initSequenceWidget(self):
         self.seq_widget = QtGui.QWidget(self.main_widget)
         seqbox = QtGui.QHBoxLayout(self.seq_widget)
-        seqtextl = QtGui.QLabel()
-        seqtextl.setText('Sequence: ')
-        self.seqtext = seqtext = QtGui.QLineEdit()
+        seqTextl = QtGui.QLabel()
+        seqTextl.setText('Sequence: ')
+        self.seqText = seqText = QtGui.QLineEdit()
         self.setSeqString(self.seq)
-        seqbox.addWidget(seqtextl)
-        seqbox.addWidget(seqtext)
+        seqbox.addWidget(seqTextl)
+        seqbox.addWidget(seqText)
         self.vboxl.addWidget(self.seq_widget)
 
 
@@ -143,7 +148,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         ranget1.setValidator(QtGui.QIntValidator(0, 10000))
         self.range2 = ranget2 = QtGui.QLineEdit()
         ranget2.setValidator(QtGui.QIntValidator(0, 10000))
-        self.set_seqrange(self.seq)
+        self.setSeqRange(self.seq)
         self.goButton = rangegobutton = QtGui.QPushButton('Go')
         rangebox.addWidget(rangel1)
         rangebox.addWidget(ranget1)
@@ -153,16 +158,22 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.vboxl.addWidget(self.range_widget)
 
 
+    # Getters & setters
+    def seqString(self):
+        '''Get the sequence string'''
+        return self.seqText.text()
+
+
     def setSeqString(self, seq):
-        '''Seq the sequence string'''
+        '''Set the sequence string'''
         if seq:
-            self.seqtext.setText(str(seq.seq))
+            self.seqText.setText(str(seq.seq))
         else:
-            self.seqtext.setText('')
-        self.seqtext.setReadOnly(True)
+            self.seqText.setText('')
+        self.seqText.setReadOnly(True)
 
 
-    def set_seqrange(self, seq):
+    def setSeqRange(self, seq):
         '''Update the seqranges'''
         self.range1.clear()
         self.range2.clear()
@@ -183,7 +194,9 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.hl_base = highlight_base(self.hl_base['peak'], self.seq, self.canvas.axes)
         self.setSeqString(self.seq[start: end + 1])
         if hasattr(self, 'hl_base'):
-            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
+            self.seqText.setCursorPosition(max(0, self.hl_base['index'] - 5))
+            self.seqText.repaint()
+            self.seqText.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
         self.canvas.draw()
 
 
@@ -205,11 +218,16 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.seq = seq = parse_abi(fname)
             self.computeNewFigure(seq)
             self.setSeqString(seq)
-            self.set_seqrange(seq)
+            self.setSeqRange(seq)
             self.canvas.draw()
             self.statusBar().showMessage("Data loaded.", 2000)
         else:
             self.statusBar().showMessage("File not found.", 2000)
+
+
+    def viewViewCompleteSeq(self):
+        self.setSeqRange(self.seq)
+        self.updatePlotRange()
 
 
     def viewReverseComplement(self):
@@ -223,7 +241,9 @@ class ApplicationWindow(QtGui.QMainWindow):
                 del self.hl_base
         self.setSeqString(self.seq[int(self.range1.text()): int(self.range2.text())])
         if hasattr(self, 'hl_base'):
-            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
+            self.seqText.setCursorPosition(max(0, self.hl_base['index'] - 5))
+            self.seqText.repaint()
+            self.seqText.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
         self.canvas.draw()
         self.statusBar().showMessage("Reverse complement.", 2000)
 
@@ -254,7 +274,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.canvas.draw()
 
         if hasattr(self, 'hl_base'):
-            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
+            self.seqText.setCursorPosition(max(0, self.hl_base['index'] - 5))
+            self.seqText.repaint()
+            self.seqText.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
 
 
 
