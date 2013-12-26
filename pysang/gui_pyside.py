@@ -86,23 +86,22 @@ class ApplicationWindow(QtGui.QMainWindow):
     
     # Initialization functions
     def initMenuBar(self):
-        self.file_menu = QtGui.QMenu('&File', self)
-        self.file_menu.addAction('&Open', self.fileOpen,
+        self.fileMenu = QtGui.QMenu('&File', self)
+        self.fileMenu.addAction('&Open', self.fileOpen,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_O)
-        self.file_menu.addAction('&Quit', self.fileQuit,
+        self.fileMenu.addAction('&Quit', self.fileQuit,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
-        self.menuBar().addMenu(self.file_menu)
+        self.menuBar().addMenu(self.fileMenu)
 
-        self.options_menu = QtGui.QMenu('&Options', self)
-        self.options_menu.addAction('&Reverse complement', self.optionsReverseComplement,
+        self.viewMenu = QtGui.QMenu('&View', self)
+        self.viewMenu.addAction('&Reverse complement', self.viewReverseComplement,
                                     QtCore.Qt.CTRL + QtCore.Qt.Key_R)
-        self.menuBar().addMenu(self.options_menu)
+        self.menuBar().addMenu(self.viewMenu)
 
-        self.help_menu = QtGui.QMenu('&Help', self)
+        self.helpMenu = QtGui.QMenu('&Help', self)
         self.menuBar().addSeparator()
-        self.menuBar().addMenu(self.help_menu)
-
-        self.help_menu.addAction('&About', self.helpAbout)
+        self.menuBar().addMenu(self.helpMenu)
+        self.helpMenu.addAction('&About', self.helpAbout)
 
 
     def initTitleWidget(self):
@@ -183,6 +182,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             else:
                 self.hl_base = highlight_base(self.hl_base['peak'], self.seq, self.canvas.axes)
         self.setSeqString(self.seq[start: end + 1])
+        if hasattr(self, 'hl_base'):
+            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
         self.canvas.draw()
 
 
@@ -211,13 +212,18 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.statusBar().showMessage("File not found.", 2000)
 
 
-    def optionsReverseComplement(self):
+    def viewReverseComplement(self):
         self.seq = seq = reverse_complement(self.seq)
         self.computeNewFigure(seq)
         if hasattr(self, 'hl_base'):
             pos_click = peak_position(len(seq) - 1 - self.hl_base['index'], self.seq)
-            self.hl_base = highlight_base(pos_click, self.seq, self.canvas.axes)
+            try:
+                self.hl_base = highlight_base(pos_click, self.seq, self.canvas.axes)
+            except ValueError:
+                del self.hl_base
         self.setSeqString(self.seq[int(self.range1.text()): int(self.range2.text())])
+        if hasattr(self, 'hl_base'):
+            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
         self.canvas.draw()
         self.statusBar().showMessage("Reverse complement.", 2000)
 
@@ -243,9 +249,12 @@ class ApplicationWindow(QtGui.QMainWindow):
                 return
         try:
             self.hl_base = highlight_base(ev.xdata, self.seq, self.canvas.axes)
-            self.canvas.draw()
         except ValueError:
             return
+        self.canvas.draw()
+
+        if hasattr(self, 'hl_base'):
+            self.seqtext.setSelection(self.hl_base['index'] - int(self.range1.text()), 1)
 
 
 
