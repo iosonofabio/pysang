@@ -93,7 +93,7 @@ class ApplicationWindow(Tk):
         self.bind_all("<Control-r>", self.reverseComplement)
 
         # Title row
-        title = Label(master=self)
+        self.titlew = title = Label(master=self)
         if seq is not None:
             title.config(text=seq.name)
         title['font'] = ((title['font'], 14))
@@ -188,6 +188,8 @@ class ApplicationWindow(Tk):
         if fname:
             self.seq = seq = parse_abi(fname)
             self.canvas.compute_new_figure(seq)
+            if seq is not None:
+                self.titlew.config(text=seq.name)
             self.set_seqstring(seq)
             self.set_seqrange(seq)
             self.statusBar.config(text="Data loaded.")

@@ -7,7 +7,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name="PySang",
-      version="0.3.1",
+      version="0.3.2",
       description="Visualizer for Sanger chromatographs (ABI/AB1).",
       long_description=read("README"),
       author="Fabio Zanini",

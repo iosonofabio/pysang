@@ -5,10 +5,12 @@ date:       09/12/13
 content:    Plot functions for Sanger chromatographs.
 '''
 # Modules
+from collections import defaultdict
 from itertools import izip
 
 # Globals
-colors = {'A': 'r', 'C': 'b', 'G': 'g', 'T': 'k'}
+bases = ['A', 'C', 'G', 'T']
+colors = defaultdict(lambda: 'purple', {'A': 'r', 'C': 'b', 'G': 'g', 'T': 'k'})
 
 
 # Functions
@@ -34,7 +36,8 @@ def plot_chromatograph(seq, ax=None, xlim=None, peaklim=None):
     # Limit to a region if necessary
     if (xlim is not None) or (peaklim is not None):
         if peaklim is not None:
-            xlim = (peaks[peaklim[0]], peaks[peaklim[1] - 1])
+            xlim = (peaks[min(len(peaks) - 1, peaklim[0])],
+                    peaks[min(len(peaks) - 1, peaklim[1] - 1)])
         ind = [(xi >= xlim[0]) and (xi <= xlim[1]) for xi in x]
         if not any(ind):
             return 
@@ -47,9 +50,9 @@ def plot_chromatograph(seq, ax=None, xlim=None, peaklim=None):
 
     # Plot traces
     trmax = max(map(max, traces))
-    for base, color in colors.iteritems():
+    for base in bases:
         y = [1.0 * ci / trmax for ci in traces[bases.index(base)]]
-        ax.plot(x, y, color=color, lw=2, label=base)
+        ax.plot(x, y, color=colors[base], lw=2, label=base)
 
     # Plot bases at peak positions
     for i, peak in enumerate(peaks):

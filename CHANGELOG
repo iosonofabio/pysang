@@ -3,3 +3,12 @@
 
 0.2:
 - Tkinter GUI
+
+0.3:
+- Reverse complement
+
+0.3.1:
+- Full sequence view
+
+0.3.2:
+- Bugfixes with ambiguous nucleotides, too large boundaries

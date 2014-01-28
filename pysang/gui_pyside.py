@@ -217,6 +217,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         if fname:
             self.seq = seq = parse_abi(fname)
             self.computeNewFigure(seq)
+            if self.seq is not None:
+                self.title.setText(self.seq.name)
             self.setSeqString(seq)
             self.setSeqRange(seq)
             self.canvas.draw()
