@@ -1,5 +1,8 @@
-PySang: a Sanger chromatograph viewer.
+# PySang: a Sanger chromatograph viewer.
 
+![Image](data/pysang_example.png?raw=true)
+
+## License
 PySang is donated to the public domain. You may therefore freely copy
 it for any legal purpose you wish. Acknowledgement of authorship and citation
 in publications is appreciated.
