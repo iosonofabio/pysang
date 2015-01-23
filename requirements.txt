@@ -1,0 +1,3 @@
+biopython
+matplotlib
+# Tkinter or PySide are also required for the GUI
