@@ -12,3 +12,6 @@
 
 0.3.2:
 - Bugfixes with ambiguous nucleotides, too large boundaries
+
+0.3.8:
+- File -> Open opens a new window

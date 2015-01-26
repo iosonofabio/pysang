@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 long_description = "Check out the README file for install instructions and more."
 
 setup(name="PySang",
-      version="0.3.7",
+      version="0.3.8",
       description="Visualizer for Sanger chromatographs (ABI/AB1).",
       long_description=long_description,
       author="Fabio Zanini",
