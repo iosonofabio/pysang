@@ -19,9 +19,14 @@ from sequence_utils import reverse_complement
 
 
 
+# Globals
+window_refs = []
+
+
+
 # Classes
 class MyMplCanvas(FigureCanvas):
-    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+    """Chromatograph canvas"""
     def __init__(self, seq=None, parent=None, width=18, height=6, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         fig.set_facecolor(parent['background'])
@@ -64,6 +69,7 @@ class MyMplCanvas(FigureCanvas):
 
 class ApplicationWindow(Tk):
     def __init__(self, seq=None):
+        self.windex = len(window_refs)
         self.seq = seq
 
         Tk.__init__(self)
@@ -136,7 +142,7 @@ class ApplicationWindow(Tk):
         self.range_widget.pack(side=TOP, fill=BOTH, expand=1)
 
         # Status bar
-        self.statusBar = Label(master=self, text="Sample data loaded", bd=1, relief=SUNKEN, anchor=W)
+        self.statusBar = Label(master=self, text="Data loaded", bd=1, relief=SUNKEN, anchor=W)
         self.statusBar.pack(side=BOTTOM, fill=X)
 
 
@@ -184,15 +190,14 @@ class ApplicationWindow(Tk):
 
 
     def fileOpen(self, event=None):
+        '''Open a new window loading from a file'''
         fname = tkFileDialog.askopenfilename()
         if fname:
-            self.seq = seq = parse_abi(fname)
-            self.canvas.compute_new_figure(seq)
-            if seq is not None:
-                self.titlew.config(text=seq.name)
-            self.set_seqstring(seq)
-            self.set_seqrange(seq)
-            self.statusBar.config(text="Data loaded.")
+            win = ApplicationWindow(seq=parse_abi(fname))
+            window_refs.append(win)
+        else:
+            self.statusBar.config(text="File not found.")
+
 
 
     def reverseComplement(self, event=None):
@@ -204,6 +209,10 @@ class ApplicationWindow(Tk):
 
 
     def closeEvent(self, ce):
+        for iw, win in enumerate(window_refs):
+            if win.windex == self.windex:
+                del window_refs[iw]
+                break
         self.fileQuit()
 
 
@@ -236,6 +245,7 @@ def main():
     seq = parse_abi(input_file)
 
     win = ApplicationWindow(seq)
+    window_refs.append(win)
     win.mainloop()
     
 

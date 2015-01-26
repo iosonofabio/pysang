@@ -19,8 +19,8 @@ from sequence_utils import reverse_complement
 from info import aboutMessage
 
 
-
-# Functions
+# Globals
+window_refs = []
 
 
 
@@ -52,7 +52,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     '''Main window of PySang'''
 
     def __init__(self, seq=None):
-        # For the time being, work with a single chromatograph
+        self.windex = len(window_refs)
         self.seq = seq
 
         QtGui.QMainWindow.__init__(self)
@@ -215,14 +215,18 @@ class ApplicationWindow(QtGui.QMainWindow):
     def fileOpen(self):
         fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
         if fname:
-            self.seq = seq = parse_abi(fname)
-            self.computeNewFigure(seq)
-            if self.seq is not None:
-                self.title.setText(self.seq.name)
-            self.setSeqString(seq)
-            self.setSeqRange(seq)
-            self.canvas.draw()
-            self.statusBar().showMessage("Data loaded.", 2000)
+            win = ApplicationWindow(seq=parse_abi(fname))
+            window_refs.append(win)
+            win.show()
+
+            #self.seq = seq = parse_abi(fname)
+            #self.computeNewFigure(seq)
+            #if self.seq is not None:
+            #    self.title.setText(self.seq.name)
+            #self.setSeqString(seq)
+            #self.setSeqRange(seq)
+            #self.canvas.draw()
+            #self.statusBar().showMessage("Data loaded.", 2000)
         else:
             self.statusBar().showMessage("File not found.", 2000)
 
@@ -251,6 +255,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
 
     def closeEvent(self, ce):
+        for iw, win in enumerate(window_refs):
+            if win.windex == self.windex:
+                del window_refs[iw]
+                break
         self.fileQuit()
 
 
@@ -283,7 +291,6 @@ class ApplicationWindow(QtGui.QMainWindow):
 
 
 def main():
-
     from pkg_resources import resource_stream
     input_file = resource_stream(__name__, 'data/FZ01_A12_096.ab1')
     seq = parse_abi(input_file)
@@ -293,6 +300,7 @@ def main():
             app = QtGui.QApplication(sys.argv)
 
     win = ApplicationWindow(seq)
+    window_refs.append(win)
     win.show()
     sys.exit(app.exec_())
 
@@ -300,5 +308,4 @@ def main():
 
 # Script
 if __name__ == '__main__':
-
     main()
