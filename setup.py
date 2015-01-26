@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 long_description = "Check out the README file for install instructions and more."
 
 setup(name="PySang",
-      version="0.3.8",
+      version="0.3.9",
       description="Visualizer for Sanger chromatographs (ABI/AB1).",
       long_description=long_description,
       author="Fabio Zanini",
@@ -19,5 +19,5 @@ setup(name="PySang",
       url='https://github.com/iosonofabio/pysang',
       packages=find_packages(exclude='tests'),
       package_data={'pysang': ['data/*.ab1']},
-      entry_points = {'gui_scripts': ['pysang = pysang.gui:main']}
+      entry_points = {'gui_scripts': ['pysang = pysang.command_line:main']}
      )
